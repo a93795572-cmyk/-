@@ -114,7 +114,7 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--hue);outline-of
   var $ = function (id) { return document.getElementById(id); };
   var DAY = 86400000, cat = '';
   // Vercel 등 외부에서 쓸 때: Apps Script 웹 앱 배포 주소(.../exec)를 여기에 넣으세요.
-  var API_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL';
+  var API_URL = 'https://script.google.com/macros/s/AKfycb……/exec';
 
   // Apps Script 안에서는 google.script.run, 그 밖(Vercel)에서는 fetch로 저장
   function send(data, ok, fail) {
