@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<title>오픈데이 - 스마트 재고 관리</title>
+<script>
+window.onerror = function (msg, url, lineNo) {
+  var b = document.getElementById('msg');
+  if (b) { b.className = 'msg err'; b.textContent = '시스템 오류: ' + msg + ' (라인: ' + lineNo + ')'; }
+  var s = document.getElementById('submit-btn');
+  if (s) { s.disabled = false; s.textContent = '제품 등록하기'; }
+  return false;
+};
+</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{
+  --ground:#f2f4ef; --surface:#fbfcf9; --ink:#14181a; --mute:#5b6561; --line:#dde2da; --line-strong:#c8cfc5;
+  --hue:#0d7a68; --warn:#b97f10; --bad:#b53a2b;
+  --ok-bg:#d8eadf; --ok-tx:#0b5646; --warn-bg:#f6e6bd; --warn-tx:#684700; --bad-bg:#f4d8d2; --bad-tx:#86261a;
+  font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--ground);color:var(--ink);-webkit-text-size-adjust:100%}
+body{font-size:15px;line-height:1.5;padding:env(safe-area-inset-top) 0 calc(32px + env(safe-area-inset-bottom))}
+button,input{font:inherit;color:inherit}
+.num{font-variant-numeric:tabular-nums}
+.wrap{max-width:480px;margin:0 auto;padding:0 16px}
+header{display:flex;align-items:center;gap:10px;padding:18px 0 4px}
+.brand{font-weight:700;font-size:17px;letter-spacing:-.02em}
+.scope{margin-left:auto;font-size:12.5px;color:var(--mute)}
+h1{font-size:24px;font-weight:650;letter-spacing:-.03em;line-height:1.2;margin:18px 0 4px}
+.lede{font-size:14px;color:var(--mute);margin-bottom:18px}
+
+form{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px 16px 18px}
+.f{margin-top:16px}
+.f>label,.f>.lab{display:block;font-size:13px;color:var(--mute);margin-bottom:6px}
+input[type=text],input[type=date],input[type=number]{width:100%;height:46px;padding:0 12px;border:1px solid var(--line-strong);border-radius:6px;background:#fff;font-size:16px}
+input::placeholder{color:#8a948f}
+input:focus-visible,button:focus-visible{outline:2px solid var(--hue);outline-offset:2px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line-strong);border-radius:6px;overflow:hidden;background:#fff}
+.seg button{height:46px;border:0;background:none;font-size:15px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-checked=true]{background:var(--ink);color:#fff;font-weight:600}
+.suffix{position:relative}
+.suffix input{padding-right:46px}
+.suffix span{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--mute);font-size:14px}
+.chips{display:flex;gap:8px;margin-top:8px}
+.chip{height:32px;padding:0 12px;border:1px solid var(--line-strong);border-radius:16px;background:none;font-size:13.5px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+
+.calc{margin-top:18px;padding:12px 14px;border:1px dashed var(--line-strong);border-radius:6px}
+.calc .t{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--mute)}
+.calc .big{font-size:18px;font-weight:600;color:var(--ink);letter-spacing:-.02em}
+.pill{display:inline-block;height:20px;line-height:20px;padding:0 8px;border-radius:4px;font-size:12px;font-weight:600;margin-left:8px;vertical-align:2px}
+.s-정상{background:var(--ok-bg);color:var(--ok-tx)}
+.s-주의{background:var(--warn-bg);color:var(--warn-tx)}
+.s-폐기{background:var(--bad-bg);color:var(--bad-tx)}
+.gauge{height:4px;background:#e4e8e0;border-radius:2px;margin-top:10px;overflow:hidden}
+.gauge i{display:block;height:100%;background:var(--hue);border-radius:2px;width:0}
+.calc.주의 .gauge i{background:var(--warn)}
+.calc.폐기 .gauge i{background:var(--bad)}
+
+.submit{width:100%;height:50px;margin-top:18px;border:0;border-radius:6px;background:var(--ink);color:#fff;font-size:16px;font-weight:600;cursor:pointer}
+.submit:disabled{opacity:.55;cursor:default}
+.dot{display:inline-block;width:14px;height:14px;margin-right:8px;vertical-align:-2px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.msg{display:none;margin-top:14px;padding:12px 14px;border-radius:6px;font-size:14px;line-height:1.45}
+.msg.ok{display:block;background:var(--ok-bg);color:var(--ok-tx)}
+.msg.err{display:block;background:var(--bad-bg);color:var(--bad-tx)}
+@media (prefers-reduced-motion:reduce){.dot{animation-duration:2s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true"><circle cx="13" cy="13" r="10" stroke="#0d7a68" stroke-width="3" stroke-dasharray="52 11" stroke-linecap="round" transform="rotate(-60 13 13)"/><circle cx="13" cy="13" r="3" fill="#14181a"/></svg>
+    <span class="brand">오픈데이</span>
+    <span class="scope">스마트 재고 관리</span>
+  </header>
+
+  <h1>신규 제품 등록</h1>
+  <p class="lede">개봉일과 권장사용기한을 적으면 만료일을 계산해 기록합니다.</p>
+
+  <form id="inventory-form" novalidate>
+    <div class="f"><label for="alias">사용자 별칭</label><input type="text" id="alias" name="alias" placeholder="예: 자취생A" autocomplete="off"></div>
+
+    <div class="f"><span class="lab" id="catLab">카테고리</span>
+      <div class="seg" id="category" role="radiogroup" aria-labelledby="catLab">
+        <button type="button" role="radio" aria-checked="false" data-v="화장품">화장품</button>
+        <button type="button" role="radio" aria-checked="false" data-v="영양제">영양제</button>
+        <button type="button" role="radio" aria-checked="false" data-v="식재료">식재료</button>
+      </div>
+    </div>
+
+    <div class="f"><label for="itemName">품목명</label><input type="text" id="itemName" name="itemName" placeholder="예: 비타민C 100정" autocomplete="off"></div>
+    <div class="f"><label for="openDate">개봉일</label><input type="date" id="openDate" name="openDate"></div>
+    <div class="f"><label for="months">권장사용기한</label>
+      <div class="suffix"><input type="number" id="months" name="months" min="0" step="1" inputmode="numeric" placeholder="예: 12" class="num"><span>개월</span></div>
+      <div class="chips" id="chips"><button type="button" class="chip" data-m="3">3개월</button><button type="button" class="chip" data-m="6">6개월</button><button type="button" class="chip" data-m="12">12개월</button><button type="button" class="chip" data-m="24">24개월</button></div>
+    </div>
+
+    <div class="calc" id="calc" aria-live="polite"><div class="t"><span>개봉일과 기한을 넣으면 만료일이 계산됩니다.</span></div></div>
+
+    <button type="submit" class="submit" id="submit-btn">제품 등록하기</button>
+    <div class="msg" id="msg" role="status" aria-live="polite"></div>
+  </form>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var DAY = 86400000, cat = '';
+  // Vercel 등 외부에서 쓸 때: Apps Script 웹 앱 배포 주소(.../exec)를 여기에 넣으세요.
+  var API_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL';
+
+  // Apps Script 안에서는 google.script.run, 그 밖(Vercel)에서는 fetch로 저장
+  function send(data, ok, fail) {
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run.withSuccessHandler(ok).withFailureHandler(fail).saveData(data);
+      return;
+    }
+    if (API_URL.indexOf('https://') !== 0) { fail({ message: 'API 주소(API_URL)가 설정되지 않았습니다.' }); return; }
+    fetch(API_URL, { method: 'POST', body: JSON.stringify(data) })
+      .then(function (r) { return r.json(); })
+      .then(ok, function () { fail({ message: '서버에 연결하지 못했습니다.' }); });
+  }
+
+  function ymd(d) { var m = d.getMonth() + 1, dd = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (dd < 10 ? '0' : '') + dd; }
+  function parse(s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function today() { var t = new Date(); t.setHours(0, 0, 0, 0); return t; }
+  function remainText(n) { return n < 0 ? (-n) + '일 경과' : (n === 0 ? '오늘 만료' : 'D-' + n); }
+  function statusOf(n) { return n < 0 ? '폐기' : (n <= 30 ? '주의' : '정상'); }
+  function setToday() { $('openDate').value = ymd(new Date()); }
+
+  function calc() {
+    var od = $('openDate').value, m = $('months').value, box = $('calc');
+    [].forEach.call($('chips').children, function (c) { c.setAttribute('aria-pressed', c.dataset.m === String(m)); });
+    box.className = 'calc';
+    if (!od || m === '' || isNaN(+m) || +m < 0) { box.innerHTML = '<div class="t"><span>개봉일과 기한을 넣으면 만료일이 계산됩니다.</span></div>'; return; }
+    var open = parse(od), exp = new Date(open.getTime());
+    exp.setMonth(exp.getMonth() + (+m));
+    var n = Math.ceil((exp - today()) / DAY), st = statusOf(n);
+    var total = Math.max(exp - open, 0), left = total ? Math.min(Math.max(n * DAY / total, 0), 1) : 0;
+    box.className = 'calc ' + st;
+    box.innerHTML = '<div class="t"><span>만료 예정일 <span class="num">' + ymd(exp) + '</span></span><span class="big num">' + remainText(n) + '<span class="pill s-' + st + '">' + st + '</span></span></div>'
+      + '<div class="gauge"><i style="width:' + (left * 100).toFixed(1) + '%"></i></div>';
+  }
+
+  function say(text, ok) { var b = $('msg'); b.className = 'msg ' + (ok ? 'ok' : 'err'); b.textContent = text; }
+
+  $('category').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    cat = b.dataset.v;
+    [].forEach.call($('category').children, function (x) { x.setAttribute('aria-checked', x === b); });
+  });
+  $('chips').addEventListener('click', function (e) { var c = e.target.closest('.chip'); if (c) { $('months').value = c.dataset.m; calc(); } });
+  $('openDate').addEventListener('input', calc);
+  $('months').addEventListener('input', calc);
+
+  $('inventory-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    $('msg').className = 'msg';
+    var data = { alias: $('alias').value, category: cat, itemName: $('itemName').value, openDate: $('openDate').value, months: $('months').value };
+    if (!data.alias.trim() || !data.category || !data.itemName.trim() || !data.openDate || data.months === '') {
+      say(!data.category && data.alias.trim() && data.itemName.trim() ? '카테고리를 선택해 주세요.' : '모든 필수 항목을 빠짐없이 입력해 주세요.', false);
+      return;
+    }
+    var btn = $('submit-btn');
+    btn.disabled = true; btn.innerHTML = '<span class="dot"></span>저장하는 중…';
+    function done() { btn.disabled = false; btn.textContent = '제품 등록하기'; }
+    send(data, function (res) {
+        done();
+        if (!res.success) { say('오류: ' + res.message, false); return; }
+        say(res.message, true);
+        $('inventory-form').reset(); cat = '';
+        [].forEach.call($('category').children, function (x) { x.setAttribute('aria-checked', 'false'); });
+        setToday(); calc();
+    }, function (err) { done(); say('시스템 오류: ' + ((err && err.message) || '저장하지 못했습니다.'), false); });
+  });
+
+  setToday(); calc();
+})();
+</script>
+</body>
+</html>
