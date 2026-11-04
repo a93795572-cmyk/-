@@ -113,20 +113,6 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--hue);outline-of
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var DAY = 86400000, cat = '';
-  // Vercel 등 외부에서 쓸 때: Apps Script 웹 앱 배포 주소(.../exec)를 여기에 넣으세요.
-  var API_URL = 'https://script.google.com/macros/s/AKfycb……/exec';
-
-  // Apps Script 안에서는 google.script.run, 그 밖(Vercel)에서는 fetch로 저장
-  function send(data, ok, fail) {
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run.withSuccessHandler(ok).withFailureHandler(fail).saveData(data);
-      return;
-    }
-    if (API_URL.indexOf('https://') !== 0) { fail({ message: 'API 주소(API_URL)가 설정되지 않았습니다.' }); return; }
-    fetch(API_URL, { method: 'POST', body: JSON.stringify(data) })
-      .then(function (r) { return r.json(); })
-      .then(ok, function () { fail({ message: '서버에 연결하지 못했습니다.' }); });
-  }
 
   function ymd(d) { var m = d.getMonth() + 1, dd = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (dd < 10 ? '0' : '') + dd; }
   function parse(s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
@@ -171,14 +157,17 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--hue);outline-of
     var btn = $('submit-btn');
     btn.disabled = true; btn.innerHTML = '<span class="dot"></span>저장하는 중…';
     function done() { btn.disabled = false; btn.textContent = '제품 등록하기'; }
-    send(data, function (res) {
+    google.script.run
+      .withSuccessHandler(function (res) {
         done();
         if (!res.success) { say('오류: ' + res.message, false); return; }
         say(res.message, true);
         $('inventory-form').reset(); cat = '';
         [].forEach.call($('category').children, function (x) { x.setAttribute('aria-checked', 'false'); });
         setToday(); calc();
-    }, function (err) { done(); say('시스템 오류: ' + ((err && err.message) || '저장하지 못했습니다.'), false); });
+      })
+      .withFailureHandler(function (err) { done(); say('시스템 오류: ' + ((err && err.message) || '저장하지 못했습니다.'), false); })
+      .saveData(data);
   });
 
   setToday(); calc();
